@@ -5,6 +5,8 @@
 
 This repository contains the nightly build setup for ArchiveTune, an advanced YouTube Music client for Android.
 
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/sang765/ArchiveTune-Nightly/nightly-build.yml?branch=main&style=for-the-badge&logo=github&label=Build%20Status)](https://github.com/sang765/ArchiveTune-Nightly/actions/workflows/nightly-build.yml)
+
 ## About ArchiveTune
 
 ArchiveTune is an Android application that provides an enhanced YouTube Music experience with features like:
