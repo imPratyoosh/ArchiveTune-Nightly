@@ -49,13 +49,31 @@ jobs:
       - name: Generate changelog
         run: git log --oneline --since="1 day ago" > changelog.txt
 
-      - name: Upload APK artifacts
+      - name: Upload arm64 APK
         uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: nightly-apks
+          name: nightly-apk-arm64
           path: |
-            app/build/outputs/apk/**/nightly/*.apk
+            app/build/outputs/apk/arm64-v8a/nightly/*.apk
+            changelog.txt
+
+      - name: Upload armeabi APK
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: nightly-apk-armeabi
+          path: |
+            app/build/outputs/apk/armeabi-v7a/nightly/*.apk
+            changelog.txt
+
+      - name: Upload universal APK
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: nightly-apk-universal
+          path: |
+            app/build/outputs/apk/universal/nightly/*.apk
             changelog.txt
 
       - name: Notify on failure
