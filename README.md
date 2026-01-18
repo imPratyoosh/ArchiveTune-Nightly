@@ -1,5 +1,8 @@
 # ArchiveTune Nightly
 
+> [!WARNING]
+> - This is **unofficial** Nightly build of AchieveTune. If you wanna download official AchieveTune, please check out this [repository](https://github.com/koiverse/ArchiveTune).
+
 This repository contains the nightly build setup for ArchiveTune, an advanced YouTube Music client for Android.
 
 ## About ArchiveTune
