@@ -7,6 +7,7 @@
   packages = [
     pkgs.act
     pkgs.sdkmanager
+    pkgs.docker
     # pkgs.go
     # pkgs.python311
     # pkgs.python311Packages.pip
