@@ -1,11 +1,16 @@
+<div align="center">
+<img width="150" height="150" src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" alt="Archivetune">
+
 # ArchiveTune Nightly
+
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/sang765/ArchiveTune-Nightly/nightly-build.yml?branch=main&style=for-the-badge&logo=github&label=Build%20Status)](https://github.com/sang765/ArchiveTune-Nightly/actions/workflows/nightly-build.yml)
+
+</div>
 
 > [!WARNING]
 > - This is **unofficial** Nightly build of AchieveTune. If you wanna download official AchieveTune, please check out this [repository](https://github.com/koiverse/ArchiveTune).
 
 This repository contains the nightly build setup for ArchiveTune, an advanced YouTube Music client for Android.
-
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/sang765/ArchiveTune-Nightly/nightly-build.yml?branch=main&style=for-the-badge&logo=github&label=Build%20Status)](https://github.com/sang765/ArchiveTune-Nightly/actions/workflows/nightly-build.yml)
 
 ## About ArchiveTune
 
