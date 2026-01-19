@@ -9,6 +9,9 @@
     pkgs.sdkmanager
     pkgs.docker
     pkgs.systemd
+    pkgs.python312
+    pkgs.python312Packages.virtualenv
+    pkgs.python312Packages.requests
     # pkgs.go
     # pkgs.python311
     # pkgs.python311Packages.pip
