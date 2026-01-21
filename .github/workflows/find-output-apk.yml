@@ -1,4 +1,4 @@
-name: Nightly Build
+name: Find Output APK
 
 on:
   repository_dispatch:
@@ -92,47 +92,23 @@ jobs:
 
       - name: Build nightly APKs
         if: steps.check.outputs.skip == 'false'
-        run: cd ArchiveTune && ../gradlew assembleUniversalNightly
+        run: cd ArchiveTune && ../gradlew assembleArm64Nightly assembleArmeabiNightly assembleUniversalNightly
 
-      - name: Generate changelog
+      - name: Find APK files
         if: steps.check.outputs.skip == 'false'
-        id: changelog
         run: |
-          CHANGELOG=$(git log --pretty=format:"- ([%h](https://github.com/koiverse/ArchiveTune/commit/%H)): **\"%s\"** by **@%an**" --since="1 day ago" --no-merges)
-          echo "## Changelog" >> changelog.txt
-          echo "" >> changelog.txt
-          echo "$CHANGELOG" >> changelog.txt
-          # Escape for GITHUB_OUTPUT
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "## Changelog" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Get Date
-        if: steps.check.outputs.skip == 'false'
-        id: date
-        run: echo "date=$(date +'%Y/%m/%d')" >> $GITHUB_OUTPUT
-
-      - name: Get Time
-        if: steps.check.outputs.skip == 'false'
-        id: time
-        run: echo "time=$(date +'%I:%M:%S %p')" >> $GITHUB_OUTPUT
-
-      - name: Create nightly release
-        if: steps.check.outputs.skip == 'false'
-        uses: softprops/action-gh-release@v2.5.0
-        with:
-          tag_name: ${{ env.NEW_VERSION }}
-          name: ${{ env.NEW_VERSION }}
-          body: |
-            Release **ArchiveTune Nightly** artifact, generated on **${{ steps.date.outputs.date }} - ${{ steps.time.outputs.time }} (UTC +0)**
-
-            ${{ steps.changelog.outputs.changelog }}
-          files: |
-            ArchiveTune/app/build/outputs/apk/universal/nightly/*.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APK_FILES=$(find ArchiveTune/app/build/outputs/apk -name "*.apk")
+          echo "Found APK files:"
+          APK_NAMES=""
+          APK_PATHS=""
+          for apk in $APK_FILES; do
+            APK_NAME=$(basename "$apk")
+            echo "APK Name: $APK_NAME, Path: $apk"
+            APK_NAMES="$APK_NAMES $APK_NAME"
+            APK_PATHS="$APK_PATHS $apk"
+          done
+          echo "APK_NAMES=$APK_NAMES" >> $GITHUB_ENV
+          echo "APK_PATHS=$APK_PATHS" >> $GITHUB_ENV
 
       - name: Notify on failure
         if: failure()

@@ -7,11 +7,11 @@
   packages = [
     pkgs.act
     pkgs.sdkmanager
-    pkgs.docker
     pkgs.systemd
     pkgs.python312
     pkgs.python312Packages.virtualenv
     pkgs.python312Packages.requests
+    pkgs.temurin-bin-21
     # pkgs.go
     # pkgs.python311
     # pkgs.python311Packages.pip
@@ -20,6 +20,7 @@
   ];
   # Sets environment variables in the workspace
   env = {};
+  services.docker.enable = true;
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
