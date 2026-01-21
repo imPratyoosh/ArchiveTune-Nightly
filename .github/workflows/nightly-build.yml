@@ -88,6 +88,11 @@ jobs:
       - name: Build nightly APKs
         if: steps.check.outputs.skip == 'false'
         run: ./gradlew assembleUniversalNightly
+        env:
+          PULL_REQUEST: 'false'
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
 
       - name: Generate changelog
         if: steps.check.outputs.skip == 'false'
