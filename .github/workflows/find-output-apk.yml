@@ -1,0 +1,116 @@
+name: Find Output APK
+
+on:
+  repository_dispatch:
+    types: [trigger-nightly]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@v4
+        with:
+          repository: koiverse/ArchiveTune
+          ref: dev
+
+      - name: Check for new commits
+        id: check
+        run: |
+          COMMIT_COUNT=$(git log --oneline --since="1 day ago" | wc -l)
+          echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+          if [ "$COMMIT_COUNT" -eq 0 ]; then
+            echo "No new commits, skipping build"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "Found $COMMIT_COUNT new commits"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up JDK 21
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('ArchiveTune/**/*.gradle*', 'ArchiveTune/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        if: steps.check.outputs.skip == 'false'
+        run: chmod +x ArchiveTune/gradlew
+
+      - name: Set up Python
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Update version name for nightly build
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          ORIGINAL_VERSION=$(grep 'versionName = ' ArchiveTune/app/build.gradle.kts | sed 's/.*versionName = "\(.*\)"/\1/')
+          NEW_VERSION="N$(date +%Y%m%d)"
+          sed -i "s/versionName = \"$ORIGINAL_VERSION\"/versionName = \"$NEW_VERSION\"/" ArchiveTune/app/build.gradle.kts
+          echo "Changed version from $ORIGINAL_VERSION to $NEW_VERSION"
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Apply nightly patches
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          # Create patches directory and copy files to modify
+          mkdir -p patches
+          cp ArchiveTune/app/build.gradle.kts patches/
+          cp ArchiveTune/app/src/debug/res/values/app_name.xml patches/
+          cp ArchiveTune/app/src/main/res/values/app_name.xml patches/
+          cp ArchiveTune/app/src/main/kotlin/moe/koiverse/archivetune/ui/screens/settings/UpdateScreen.kt patches/
+          cp ArchiveTune/app/src/main/kotlin/moe/koiverse/archivetune/ui/screens/settings/AboutScreen.kt patches/
+          cp ArchiveTune/app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt patches/
+
+          # Apply patches using the script
+          python scripts/apply_patch.py
+
+          # Copy modified files back
+          cp patches/build.gradle.kts ArchiveTune/app/
+          cp patches/app_name.xml ArchiveTune/app/src/debug/res/values/
+          cp patches/app_name.xml ArchiveTune/app/src/main/res/values/
+          cp patches/UpdateScreen.kt ArchiveTune/app/src/main/kotlin/moe/koiverse/archivetune/ui/screens/settings/
+          cp patches/AboutScreen.kt ArchiveTune/app/src/main/kotlin/moe/koiverse/archivetune/ui/screens/settings/
+          cp patches/Updater.kt ArchiveTune/app/src/main/kotlin/moe/koiverse/archivetune/utils/
+
+      - name: Build nightly APKs
+        if: steps.check.outputs.skip == 'false'
+        run: cd ArchiveTune && ../gradlew assembleArm64Nightly assembleArmeabiNightly assembleUniversalNightly
+
+      - name: Find APK files
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          APK_FILES=$(find ArchiveTune/app/build/outputs/apk -name "*.apk")
+          echo "Found APK files:"
+          APK_NAMES=""
+          APK_PATHS=""
+          for apk in $APK_FILES; do
+            APK_NAME=$(basename "$apk")
+            echo "APK Name: $APK_NAME, Path: $apk"
+            APK_NAMES="$APK_NAMES $APK_NAME"
+            APK_PATHS="$APK_PATHS $apk"
+          done
+          echo "APK_NAMES=$APK_NAMES" >> $GITHUB_ENV
+          echo "APK_PATHS=$APK_PATHS" >> $GITHUB_ENV
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Build failed on $(date)"
