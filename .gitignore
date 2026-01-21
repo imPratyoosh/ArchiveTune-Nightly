@@ -115,3 +115,6 @@ dmypy.json
 
 # Kotlin custom patch
 scripts/*.kt
+
+# Submodel - Repository
+ArchiveTune
