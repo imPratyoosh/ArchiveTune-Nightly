@@ -13,6 +13,7 @@
     pkgs.python312Packages.requests
     pkgs.temurin-bin-21
     pkgs.gh
+    pkgs.gnupg
     # pkgs.go
     # pkgs.python311
     # pkgs.python311Packages.pip
