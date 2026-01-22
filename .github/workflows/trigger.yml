@@ -1,7 +1,7 @@
 name: Trigger Workflows
 
 on:
-  workflow_dispatch: #Using https://console.cron-job.org
+  workflow_dispatch: #Using https://console.cron-job.org for schedule
 
 jobs:
   trigger:
@@ -19,4 +19,3 @@ jobs:
               event_type: 'trigger-nightly',
               client_payload: {}
             })
-                
