@@ -1,0 +1,16 @@
+{
+    "commit": {
+        "repository": "koiverse/ArchiveTune",
+        "branch": "dev",
+        "sha": "039fd37",
+        "message": "feat(YTPlayerUtils): refine audio format selection by bitrate and codec"
+    },
+    "release": {
+        "title": "N20260122",
+        "tag": "N20260122",
+        "release-at": "2026/01/22 - 01:43:39 AM",
+        "UTC": "0",
+        "repository": "sang765/ArchiveTune-Nightly",
+        "branch": "main"
+    }
+}
