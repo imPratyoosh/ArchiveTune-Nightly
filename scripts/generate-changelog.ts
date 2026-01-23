@@ -40,7 +40,7 @@ function formatChangelog(commits: any[]): string {
     message = message.replace(/#(\d+)/g, '[#$1](https://github.com/koiverse/ArchiveTune/issues/$1)');
     const author = commit.commit.author.name;
     const date = new Date(commit.commit.author.date).toISOString().split('T')[0];
-    changelog += `- [\`${sha.slice(0, 7)}\`](https://github.com/koiverse/ArchiveTune/commit/${sha}) - **${message}** by **@${author}**\n`;
+    changelog += `- [${sha.slice(0, 7)}](https://github.com/koiverse/ArchiveTune/commit/${sha}) - **${message}** by **@${author}**\n`;
   });
   return changelog;
 }
