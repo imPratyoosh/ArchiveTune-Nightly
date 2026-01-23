@@ -121,33 +121,20 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         run: mv app/build/outputs/apk/universal/nightly/*.apk app/build/outputs/apk/universal/nightly/ArchiveTune-Nightly.apk
 
+      - name: Setup Bun
+        if: steps.check.outputs.skip == 'false'
+        uses: oven-sh/setup-bun@v1
+
       - name: Generate changelog
         if: steps.check.outputs.skip == 'false'
         id: changelog
         run: |
-          LAST_SHA="${{ steps.read_info.outputs.last_sha }}"
-          if [ -z "$LAST_SHA" ]; then
-            COMMIT_SHA=$(git rev-parse HEAD)
-            COMMIT_MESSAGE="Initial nightly build"
-            COMMIT_REPO="koiverse/ArchiveTune"
-            COMMIT_AUTHOR=$(git show --format="%an" --no-patch $COMMIT_SHA)
-            CHANGELOG="- ([$COMMIT_SHA](https://github.com/$COMMIT_REPO/commit/$COMMIT_SHA)): **\"$COMMIT_MESSAGE\"** by **@$COMMIT_AUTHOR**"
-          else
-            COMMIT_SHA="$LAST_SHA"
-            COMMIT_MESSAGE="${{ steps.read_info.outputs.last_message }}"
-            COMMIT_REPO="${{ steps.read_info.outputs.last_repo }}"
-            COMMIT_AUTHOR=$(git show --format="%an" --no-patch $COMMIT_SHA)
-            CHANGELOG="- ([$COMMIT_SHA](https://github.com/$COMMIT_REPO/commit/$COMMIT_SHA)): **\"$COMMIT_MESSAGE\"** by **@$COMMIT_AUTHOR**"
-          fi
-          echo "## Changelog" >> changelog.txt
-          echo "" >> changelog.txt
-          echo "$CHANGELOG" >> changelog.txt
-          # Escape for GITHUB_OUTPUT
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "## Changelog" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          bun run scripts/generate-changelog.ts
+          {
+            echo "changelog<<EOF"
+            cat changelog.md
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Get Date
         if: steps.check.outputs.skip == 'false'
