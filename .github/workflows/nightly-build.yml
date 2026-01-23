@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      new_version: ${{ env.NEW_VERSION }}
     steps:
       - name: Checkout dev branch
         uses: actions/checkout@v4

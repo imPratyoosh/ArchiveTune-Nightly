@@ -1,0 +1,64 @@
+name: Update Release Notes
+
+on:
+  workflow_run:
+    workflows: ["Nightly Build"]
+    types: [completed]
+
+jobs:
+  update:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Generate changelog
+        run: bun run scripts/generate-changelog.ts
+
+      - name: Get Date
+        id: date
+        run: echo "date=$(date +'%Y/%m/%d')" >> $GITHUB_OUTPUT
+
+      - name: Get Time
+        id: time
+        run: echo "time=$(date +'%I:%M:%S %p')" >> $GITHUB_OUTPUT
+
+      - name: Read changelog
+        id: changelog
+        run: |
+          CHANGELOG=$(cat changelog.md)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update release notes
+        run: |
+          BODY="Release **ArchiveTune Nightly** artifact, generated on **${{ steps.date.outputs.date }} - ${{ steps.time.outputs.time }} (UTC +0)**
+
+          ${{ steps.changelog.outputs.changelog }}"
+          gh release edit ${{ github.event.workflow_run.outputs.new_version }} --notes "$BODY"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update history
+        run: |
+          RESPONSE=$(curl -s https://api.github.com/repos/koiverse/ArchiveTune/commits/dev)
+          LATEST_SHA=$(echo $RESPONSE | jq -r '.sha')
+          MESSAGE=$(echo $RESPONSE | jq -r '.commit.message')
+          jq --arg sha "$LATEST_SHA" --arg msg "$MESSAGE" '.commit.sha = $sha | .commit.message = $msg' history/commit.json > tmp.json
+          mv tmp.json history/commit.json
+
+      - name: Commit and push
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git remote set-url origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git
+          git add history/commit.json
+          git commit -m "Update commit SHA to $LATEST_SHA"
+          git push
