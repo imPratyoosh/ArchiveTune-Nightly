@@ -1,8 +1,14 @@
 {
-    "commit": {
-        "repository": "koiverse/ArchiveTune",
-        "branch": "dev",
-        "sha": "039fd37",
-        "message": "feat(YTPlayerUtils): refine audio format selection by bitrate and codec"
-    }
+  "commit": {
+    "repository": "koiverse/ArchiveTune",
+    "branch": "dev",
+    "sha": "cc59de31c6602b160888c00ef0add141c36fcbb9",
+    "message": "Merge remote-tracking branch 'origin/main' into dev"
+  },
+  "release": {
+    "title": "N20260123",
+    "tag": "N20260123",
+    "release-at": "2026/01/23 - 12:36:19 AM",
+    "UTC": "0"
+  }
 }
