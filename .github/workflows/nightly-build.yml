@@ -192,7 +192,7 @@ jobs:
           git config user.email "actions@github.com"
           git add history/commit.json
           RELEASE_REPO=$(jq -r '.release.repository' history/commit.json)
-          git commit -m "Update history/commit.json after nightly release https://github.com/$RELEASE_REPO/releases/tag/${{ env.NEW_VERSION }}"
+          git commit -m "Update history/commit.json after nightly release https://github.com/sang765/ArchiveTune-Nightly/releases/tag/${{ env.NEW_VERSION }}"
           git push
 
       - name: Notify on failure
