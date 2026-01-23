@@ -1,0 +1,29 @@
+name: Generate Changelog
+
+on:
+  repository_dispatch:
+    types: [generate-changelog]
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Generate changelog
+        run: bun run scripts/generate-changelog.ts
+        env:
+          LAST_SHA: ${{ github.event.client_payload.last_sha }}
+          LAST_REPO: ${{ github.event.client_payload.last_repo }}
+          LAST_BRANCH: ${{ github.event.client_payload.last_branch }}
+
+      - name: Upload changelog
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: changelog.md

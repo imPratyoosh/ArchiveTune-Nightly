@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      last_sha: ${{ steps.read_info.outputs.last_sha }}
+      last_repo: ${{ steps.read_info.outputs.last_repo }}
+      new_version: ${{ env.NEW_VERSION }}
     steps:
       - name: Read last commit info
         id: read_info
