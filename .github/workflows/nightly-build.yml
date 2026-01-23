@@ -11,6 +11,22 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Read last commit info
+        id: read_info
+        run: |
+          if [ ! -f history/commit.json ]; then
+            echo "last_sha=" >> $GITHUB_OUTPUT
+            echo "last_message=" >> $GITHUB_OUTPUT
+            echo "last_repo=" >> $GITHUB_OUTPUT
+          else
+            LAST_SHA=$(jq -r '.commit.sha' history/commit.json)
+            LAST_MESSAGE=$(jq -r '.commit.message' history/commit.json)
+            LAST_REPO=$(jq -r '.commit.repository' history/commit.json)
+            echo "last_sha=$LAST_SHA" >> $GITHUB_OUTPUT
+            echo "last_message=$LAST_MESSAGE" >> $GITHUB_OUTPUT
+            echo "last_repo=$LAST_REPO" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout dev branch
         uses: actions/checkout@v4
         with:
@@ -20,12 +36,12 @@ jobs:
       - name: Check for new commits
         id: check
         run: |
-          if [ ! -f history/commit.json ]; then
-            echo "history/commit.json not found, assuming first run"
+          LAST_SHA="${{ steps.read_info.outputs.last_sha }}"
+          if [ -z "$LAST_SHA" ]; then
+            echo "No previous SHA found, assuming first run"
             echo "commit_count=1" >> $GITHUB_OUTPUT
             echo "skip=false" >> $GITHUB_OUTPUT
           else
-            LAST_SHA=$(jq -r '.commit.sha' history/commit.json)
             COMMIT_COUNT=$(git log --oneline $LAST_SHA..HEAD | wc -l)
             echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
             if [ "$COMMIT_COUNT" -eq 0 ]; then
@@ -109,16 +125,17 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         id: changelog
         run: |
-          if [ ! -f history/commit.json ]; then
+          LAST_SHA="${{ steps.read_info.outputs.last_sha }}"
+          if [ -z "$LAST_SHA" ]; then
             COMMIT_SHA=$(git rev-parse HEAD)
             COMMIT_MESSAGE="Initial nightly build"
             COMMIT_REPO="koiverse/ArchiveTune"
             COMMIT_AUTHOR=$(git show --format="%an" --no-patch $COMMIT_SHA)
             CHANGELOG="- ([$COMMIT_SHA](https://github.com/$COMMIT_REPO/commit/$COMMIT_SHA)): **\"$COMMIT_MESSAGE\"** by **@$COMMIT_AUTHOR**"
           else
-            COMMIT_SHA=$(jq -r '.commit.sha' history/commit.json)
-            COMMIT_MESSAGE=$(jq -r '.commit.message' history/commit.json)
-            COMMIT_REPO=$(jq -r '.commit.repository' history/commit.json)
+            COMMIT_SHA="$LAST_SHA"
+            COMMIT_MESSAGE="${{ steps.read_info.outputs.last_message }}"
+            COMMIT_REPO="${{ steps.read_info.outputs.last_repo }}"
             COMMIT_AUTHOR=$(git show --format="%an" --no-patch $COMMIT_SHA)
             CHANGELOG="- ([$COMMIT_SHA](https://github.com/$COMMIT_REPO/commit/$COMMIT_SHA)): **\"$COMMIT_MESSAGE\"** by **@$COMMIT_AUTHOR**"
           fi
@@ -158,23 +175,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
-      - name: Update history/commit.json
+      - name: Update history in nightly repo
         if: steps.check.outputs.skip == 'false'
         run: |
           LATEST_SHA=$(git rev-parse HEAD)
           LATEST_MESSAGE=$(git log --oneline -1 | cut -d' ' -f2-)
+          git clone https://${{ secrets.PAT_TOKEN }}@github.com/sang765/ArchiveTune-Nightly.git /tmp/nightly
+          cd /tmp/nightly
           if [ ! -f history/commit.json ]; then
             jq -n --arg sha "$LATEST_SHA" --arg msg "$LATEST_MESSAGE" '{commit: {repository: "koiverse/ArchiveTune", branch: "dev", sha: $sha, message: $msg}, release: {title: "${{ env.NEW_VERSION }}", tag: "${{ env.NEW_VERSION }}", "release-at": "${{ steps.date.outputs.date }} - ${{ steps.time.outputs.time }}", UTC: "0", repository: "sang765/ArchiveTune-Nightly", branch: "main"}}' > history/commit.json
           else
             jq --arg sha "$LATEST_SHA" --arg msg "$LATEST_MESSAGE" '.commit.sha = $sha | .commit.message = $msg | .release.title = "${{ env.NEW_VERSION }}" | .release.tag = "${{ env.NEW_VERSION }}" | .release."release-at" = "${{ steps.date.outputs.date }} - ${{ steps.time.outputs.time }}" | .release.UTC = "0"' history/commit.json > history/commit_temp.json
             mv history/commit_temp.json history/commit.json
           fi
-          RELEASE_REPO=$(jq -r '.release.repository' history/commit.json)
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add history/commit.json
+          RELEASE_REPO=$(jq -r '.release.repository' history/commit.json)
           git commit -m "Update history/commit.json after nightly release https://github.com/$RELEASE_REPO/releases/tag/${{ env.NEW_VERSION }}"
-          git push https://${{ secrets.PAT_TOKEN }}@github.com/koiverse/ArchiveTune.git dev
+          git push
 
       - name: Notify on failure
         if: failure()
