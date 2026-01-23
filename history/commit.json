@@ -2,7 +2,7 @@
   "commit": {
     "repository": "koiverse/ArchiveTune",
     "branch": "dev",
-    "sha": "039fd37",
-    "message": "feat(YTPlayerUtils): refine audio format selection by bitrate and codec"
+    "sha": "cc59de31c6602b160888c00ef0add141c36fcbb9",
+    "message": "Merge remote-tracking branch 'origin/main' into dev"
   }
 }
