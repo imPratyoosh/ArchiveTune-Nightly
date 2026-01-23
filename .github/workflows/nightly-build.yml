@@ -132,6 +132,7 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         uses: softprops/action-gh-release@v2.5.0
         with:
+          repository: sang765/ArchiveTune-Nightly
           tag_name: ${{ env.NEW_VERSION }}
           name: ${{ env.NEW_VERSION }}
           body: |
@@ -141,7 +142,7 @@ jobs:
           files: |
             app/build/outputs/apk/universal/nightly/*.apk
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Update history/commit.json
         if: steps.check.outputs.skip == 'false'
