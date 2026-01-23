@@ -1,7 +1,7 @@
 <div align="center">
 <img width="150" height="150" src="https://raw.githubusercontent.com/sang765/ArchiveTune-Nightly/main/images/logo.gif" alt="Archivetune">
 
-# ArchiveTune Nightly
+# <img width="30" height="30" src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" alt="Archivetune"> ArchiveTune Nightly <img width="30" height="30" src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" alt="Archivetune">
 
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/sang765/ArchiveTune-Nightly/nightly-build.yml?branch=main&style=for-the-badge&logo=github&label=Status)](https://github.com/sang765/ArchiveTune-Nightly/actions/workflows/nightly-build.yml)
 [![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/sang765/ArchiveTune-Nightly/latest/total?style=for-the-badge&logo=Github&label=NIGHTLY%20DOWNLOAD&color=ff00ff)](https://github.com/sang765/ArchiveTune-Nightly/releases)
@@ -20,28 +20,47 @@ Sync README.md content from https://github.com/koiverse/ArchiveTune raw.
 
 </details>
 
-## Development Environment
+<div align="center">
+
+## 🛠️ Development Environment 🛠️
+
+</div>
 
 This project is set up for development in Firebase Studio (IDX) with Nix environment configuration.
 
-### Prerequisites
+<div align="center">
+
+### 💬 Requirements 💬
+
+</div>
+
 - Firebase Studio (IDX) workspace
 - Android SDK (configured via Nix)
 
-### Setup
+<div align="center">
+
+### ✈️ Setup ✈️
+
+</div>
+
 1. Open this repository in Firebase Studio
 2. The `.idx/dev.nix` file defines the development environment with Android tools
 3. Customize the environment as needed for your development workflow
 
-### Building
-- Use `./gradlew` commands in the `ArchiveTune/` directory
+<div align="center">
+
+### ⚒️ Build ⚒️
+
+</div>
+
+- ~~Use `./gradlew` commands in the `ArchiveTune/` directory~~
 - For nightly builds, see `.github/workflows/nightly-build.yml`
 
-### Contributing
-- Fork the repository
-- Make changes in the `ArchiveTune/` directory
-- Test builds using the provided Gradle wrapper
+<div align="center">
 
-## Links
+### 🔗 Links 🔗
+
+</div>
+
 - [ArchiveTune Main Repository](https://github.com/koiverse/ArchiveTune)
 - [Firebase Studio Documentation](https://developers.google.com/idx/guides/customize-idx-env)
