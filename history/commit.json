@@ -2,7 +2,7 @@
   "commit": {
     "repository": "koiverse/ArchiveTune",
     "branch": "dev",
-    "sha": "cc59de31c6602b160888c00ef0add141c36fcbb9",
-    "message": "Merge remote-tracking branch 'origin/main' into dev"
+    "sha": "af7d13520ff926e3b7b0afd33c307ee6b92c71f9",
+    "message": "Merge pull request #236 from koiverse/renovate/mikepenz-release-changelog-builder-action-6.x\n\nchore(deps): update mikepenz/release-changelog-builder-action action to v6"
   }
 }
