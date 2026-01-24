@@ -35,6 +35,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Update last nightly build badge"
+            git commit -m "ci(badge): Update last complete build date and time"
             git push https://${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git main
           fi
