@@ -33,6 +33,8 @@ async function fetchCommits(owner: string, repo: string, sinceSha: string, until
 
 function formatChangelog(commits: any[]): string {
   let changelog = '## ✨ Changelog\n\n';
+  
+  commits.reverse();
   commits.forEach(commit => {
     const sha = commit.sha;
     let message = commit.commit.message.split('\n')[0]; // First line of commit message
@@ -40,7 +42,7 @@ function formatChangelog(commits: any[]): string {
     message = message.replace(/#(\d+)/g, '[#$1](https://github.com/koiverse/ArchiveTune/issues/$1)');
     const author = commit.commit.author.name;
     const date = new Date(commit.commit.author.date).toISOString().split('T')[0];
-    changelog += `- [${sha.slice(0, 7)}](https://github.com/koiverse/ArchiveTune/commit/${sha}) - **${message}** by **@${author}**\n`;
+    changelog += `- ${date}: [\`${sha.slice(0, 7)}\`](https://github.com/koiverse/ArchiveTune/commit/${sha}) - **${message}** by @${author}\n`;
   });
   return changelog;
 }
@@ -57,11 +59,21 @@ async function main() {
       branch = process.env.LAST_BRANCH || 'dev';
     } else {
       // Read history/commit.json
-      const historyData = readFileSync('history/commit.json', 'utf-8');
-      const history: History = JSON.parse(historyData);
-      lastSha = history.commit.sha;
-      repo = history.commit.repository; // e.g., "koiverse/ArchiveTune"
-      branch = history.commit.branch; // e.g., "dev"
+      if (process.env.GITHUB_ACTIONS) {
+          try {
+            const historyData = readFileSync('history/commit.json', 'utf-8');
+            const history: History = JSON.parse(historyData);
+            lastSha = history.commit.sha;
+            repo = history.commit.repository;
+            branch = history.commit.branch;
+          } catch (e) {
+             console.log("History file not found or invalid, skipping...");
+             return; 
+          }
+      } else {
+          // Fallback local test
+          return;
+      }
     }
 
     const [owner, repoName] = repo.split('/');
@@ -70,6 +82,12 @@ async function main() {
     const latestSha = await fetchLatestSha(owner, repoName, branch);
 
     console.log(`Comparing from ${lastSha} to ${latestSha}`);
+
+    if (lastSha === latestSha) {
+        console.log("No new commits.");
+        writeFileSync('changelog.md', "No new changes.");
+        return;
+    }
 
     // Fetch commits
     const commits = await fetchCommits(owner, repoName, lastSha, latestSha);
@@ -82,6 +100,7 @@ async function main() {
     console.log('Changelog generated: changelog.md');
   } catch (error) {
     console.error('Error generating changelog:', error);
+    process.exit(1); // Exit with error code
   }
 }
 
