@@ -33,15 +33,21 @@ async function fetchCommits(owner: string, repo: string, sinceSha: string, until
 
 function formatChangelog(commits: any[]): string {
   let changelog = '## ✨ Changelog\n\n';
-  
+
   commits.reverse();
+
   commits.forEach(commit => {
     const sha = commit.sha;
-    let message = commit.commit.message.split('\n')[0]; // First line of commit message
-    // Mask #number to links
+    let message = commit.commit.message.split('\n')[0];
+
     message = message.replace(/#(\d+)/g, '[#$1](https://github.com/koiverse/ArchiveTune/issues/$1)');
-    const author = commit.commit.author.name;
+
+    const author = (commit.author && commit.author.login) 
+      ? commit.author.login 
+      : commit.commit.author.name;
+
     const date = new Date(commit.commit.author.date).toISOString().split('T')[0];
+
     changelog += `- ${date}: [\`${sha.slice(0, 7)}\`](https://github.com/koiverse/ArchiveTune/commit/${sha}) - **${message}** by @${author}\n`;
   });
   return changelog;
@@ -58,7 +64,7 @@ async function main() {
       repo = process.env.LAST_REPO || 'koiverse/ArchiveTune';
       branch = process.env.LAST_BRANCH || 'dev';
     } else {
-      // Read history/commit.json
+      // Đọc file history/commit.json
       if (process.env.GITHUB_ACTIONS) {
           try {
             const historyData = readFileSync('history/commit.json', 'utf-8');
@@ -71,36 +77,30 @@ async function main() {
              return; 
           }
       } else {
-          // Fallback local test
+          // Logic fallback for local developers if needed.
           return;
       }
     }
 
     const [owner, repoName] = repo.split('/');
 
-    // Get the latest SHA from dev branch
     const latestSha = await fetchLatestSha(owner, repoName, branch);
 
     console.log(`Comparing from ${lastSha} to ${latestSha}`);
-
+    
     if (lastSha === latestSha) {
         console.log("No new commits.");
         writeFileSync('changelog.md', "No new changes.");
         return;
     }
 
-    // Fetch commits
     const commits = await fetchCommits(owner, repoName, lastSha, latestSha);
-
-    // Generate changelog
     const changelog = formatChangelog(commits);
-
-    // Write to changelog.md
     writeFileSync('changelog.md', changelog);
     console.log('Changelog generated: changelog.md');
   } catch (error) {
     console.error('Error generating changelog:', error);
-    process.exit(1); // Exit with error code
+    process.exit(1); // Exit code 1 to report an error in GitHub Actions.
   }
 }
 
