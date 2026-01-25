@@ -2,7 +2,7 @@
   "commit": {
     "repository": "koiverse/ArchiveTune",
     "branch": "dev",
-    "sha": "4bbcff52b781654db4964c7b56ebc7f50992853d",
-    "message": "style(YearInMusic): remove unused imports"
+    "sha": "af7d13520ff926e3b7b0afd33c307ee6b92c71f9",
+    "message": "Merge pull request #236 from koiverse/renovate/mikepenz-release-changelog-builder-action-6.x\n\nchore(deps): update mikepenz/release-changelog-builder-action action to v6"
   }
 }
