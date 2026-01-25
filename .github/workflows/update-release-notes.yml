@@ -13,11 +13,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: Setup Kotlin
+        uses: fwilhe2/setup-kotlin@v1.5
 
       - name: Generate changelog
-        run: bun run scripts/generate-changelog.ts
+        run: kotlin scripts/generate-changelog.main.kts
 
       - name: Get Date
         id: date
