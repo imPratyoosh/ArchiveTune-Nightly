@@ -2,21 +2,42 @@
 import shutil
 import requests
 
-# Copy temp/README.md to root folder
-shutil.copy('temp/README.md', 'README.md')
+def fetch_content(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.text
+    except requests.exceptions.RequestException as e:
+        print(f"Lỗi khi tải {url}: {e}")
+        return None
 
-# Fetch raw README.md content from koiverse/ArchiveTune repository
-response = requests.get('https://raw.githubusercontent.com/koiverse/ArchiveTune/main/README.md')
-raw_content = response.text
+def main():
+    shutil.copy('temp/README.md', 'README.md')
+    
+    sync_map = {
+        "Sync README.md content from https://github.com/koiverse/ArchiveTune raw.": 
+            "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/README.md",
+            
+        "Sync CONTRIBUTING.md content from https://github.com/koiverse/ArchiveTune raw.": 
+            "https://raw.githubusercontent.com/koiverse/ArchiveTune/dev/CONTRIBUTING.md"
+    }
 
-# Read the current README.md
-with open('README.md', 'r') as f:
-    content = f.read()
+    with open('README.md', 'r', encoding='utf-8') as f:
+        content = f.read()
 
-# Replace the placeholder line with the fetched raw content
-placeholder = "Sync README.md content from https://github.com/koiverse/ArchiveTune raw."
-new_content = content.replace(placeholder, raw_content)
+    for placeholder, url in sync_map.items():
+        print(f"Synchronizing from: {url}...")
+        raw_data = fetch_content(url)
+        
+        if raw_data:
+            content = content.replace(placeholder, raw_data)
+        else:
+            print(f"Placeholder ignored because data could not be loaded.")
 
-# Write the updated content back to README.md
-with open('README.md', 'w') as f:
-    f.write(new_content)
+    with open('README.md', 'w', encoding='utf-8') as f:
+        f.write(content)
+    
+    print("Synchronization complete!")
+
+if __name__ == "__main__":
+    main()
