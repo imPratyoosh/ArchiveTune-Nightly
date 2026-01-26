@@ -3,6 +3,7 @@ name: Update Release Notes
 on:
   repository_dispatch:
     types: [update-release-notes]
+  workflow_dispatch: 
 
 jobs:
   update:
@@ -12,20 +13,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Setup Kotlin
-        uses: fwilhe2/setup-kotlin@v1.5
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
 
       - name: Generate changelog
-        run: kotlin scripts/generate-changelog.main.kts
+        run: bun run scripts/generate-changelog.ts
 
-      - name: Get Date & Time
-        id: datetime
-        run: |
-          echo "date=$(date +'%Y/%m/%d')" >> $GITHUB_OUTPUT
-          echo "time=$(date +'%I:%M:%S %p')" >> $GITHUB_OUTPUT
+      - name: Get Date
+        id: date
+        run: echo "date=$(date +'%Y/%m/%d')" >> $GITHUB_OUTPUT
+
+      - name: Get Time
+        id: time
+        run: echo "time=$(date +'%I:%M:%S %p')" >> $GITHUB_OUTPUT
 
       - name: Read changelog
         id: changelog
@@ -38,35 +39,40 @@ jobs:
           } >> $GITHUB_OUTPUT
 
       - name: Update release notes
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-          RELEASE_BODY: |
-            Release **ArchiveTune Nightly** artifact, generated on **${{ steps.datetime.outputs.date }} - ${{ steps.datetime.outputs.time }} (UTC +0)**
-
-            ${{ steps.changelog.outputs.content }}
-            
-            > [!NOTE]  
-            > If this version broken something, please react 👀 in this release. Thank you.
         run: |
-          gh release edit ${{ github.event.client_payload.new_version }} --notes "$RELEASE_BODY"
+          BODY=$(cat << EOF
+          Release **ArchiveTune Nightly** artifact, generated on **${{ steps.date.outputs.date }} - ${{ steps.time.outputs.time }} (UTC +0)**
+
+          ${{ steps.changelog.outputs.changelog }}
+          
+          > [!NOTE]  
+          > If this version broken something, please react 👀 in this release. Thank you.
+          EOF
+          )
+          
+          gh release edit ${{ github.event.client_payload.new_version }} --notes "$BODY"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update history
         run: |
-          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PAT_TOKEN }}" https://api.github.com/repos/koiverse/ArchiveTune/commits/dev)
+          RESPONSE=$(curl -s https://api.github.com/repos/koiverse/ArchiveTune/commits/dev)
           LATEST_SHA=$(echo $RESPONSE | jq -r '.sha')
           MESSAGE=$(echo $RESPONSE | jq -r '.commit.message')
           
           mkdir -p history
           
           if [ -f history/commit.json ]; then
-              jq --arg sha "$LATEST_SHA" --arg msg "$MESSAGE" '.commit.sha = $sha | .commit.message = $msg' history/commit.json > tmp.json && mv tmp.json history/commit.json
+             jq --arg sha "$LATEST_SHA" --arg msg "$MESSAGE" '.commit.sha = $sha | .commit.message = $msg' history/commit.json > tmp.json && mv tmp.json history/commit.json
           else
-              echo "{\"commit\": {\"sha\": \"$LATEST_SHA\", \"message\": \"$MESSAGE\", \"repository\": \"koiverse/ArchiveTune\", \"branch\": \"dev\"}}" > history/commit.json
+             echo "{\"commit\": {\"sha\": \"$LATEST_SHA\", \"message\": \"$MESSAGE\", \"repository\": \"koiverse/ArchiveTune\", \"branch\": \"dev\"}}" > history/commit.json
           fi
 
       - name: Commit and push
         run: |
-          git config user.name 'sang765'
-          git config user.email 'bemimnitran@gmail.com'
+          git config --global user.name 'sang765'
+          git config --global user.email 'bemimnitran@gmail.com'
+          git remote set-url origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git
           git add history/commit.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update history pointer [skip ci]" && git push)
+          git commit -m "chore: update history pointer [skip ci]" || echo "No changes to commit"
+          git push
