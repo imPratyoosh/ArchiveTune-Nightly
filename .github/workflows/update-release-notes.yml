@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -52,7 +54,7 @@ jobs:
           
           gh release edit ${{ github.event.client_payload.new_version }} --notes "$BODY"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Update history
         run: |
@@ -72,7 +74,6 @@ jobs:
         run: |
           git config --global user.name 'sang765'
           git config --global user.email 'bemimnitran@gmail.com'
-          git remote set-url origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git
           git add history/commit.json
           git commit -m "chore: update history pointer [skip ci]" || echo "No changes to commit"
           git push
