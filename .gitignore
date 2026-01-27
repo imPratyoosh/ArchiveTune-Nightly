@@ -123,3 +123,6 @@ yarn-debug.log*
 yarn-error.log*
 bun.lockb
 bun.lock
+
+## test file
+changelog.md

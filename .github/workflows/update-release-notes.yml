@@ -6,15 +6,6 @@ name: Update Release Notes
 on:
   repository_dispatch:
     types: [update-release-notes]
-    inputs:
-      changelog_engine:
-        description: 'Changelog generation engine'
-        required: false
-        default: 'typescript'
-        type: choice
-        options:
-          - typescript
-          - kotlin
   workflow_dispatch:
     inputs:
       changelog_engine:
@@ -28,7 +19,7 @@ on:
 
 env:
   # Set changelog engine from input, default to typescript
-  CHANGELOG_ENGINE: ${{ github.event.client_payload.changelog_engine || 'typescript' }}
+  CHANGELOG_ENGINE: ${{ github.event.client_payload.changelog_engine || github.event.inputs.changelog_engine || 'typescript' }}
 
 jobs:
   update:
@@ -70,7 +61,7 @@ jobs:
 
       - name: Generate changelog (Kotlin)
         if: env.CHANGELOG_ENGINE == 'kotlin'
-        run: kotlinc -script scripts/generate-changelog.main.kts
+        run: kotlin scripts/generate-changelog.main.kts
 
       - name: Get Date
         id: date
