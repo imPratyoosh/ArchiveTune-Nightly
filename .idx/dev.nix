@@ -9,8 +9,7 @@
     pkgs.sdkmanager
     pkgs.systemd
     pkgs.python312
-    pkgs.python312Packages.virtualenv
-    pkgs.python312Packages.requests
+    pkgs.kotlin
     pkgs.temurin-bin-21
     pkgs.gh
     pkgs.gnupg
