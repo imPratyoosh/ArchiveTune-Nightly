@@ -35,7 +35,7 @@ val client = HttpClient.newHttpClient()
 fun fetch(url: String): String {
     val request = HttpRequest.newBuilder()
         .uri(URI.create(url))
-        .header("User-Agent", "Kotlin-Script-Changelog-Bot")
+        .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36")
         .GET()
         .build()
 
