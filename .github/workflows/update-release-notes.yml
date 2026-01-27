@@ -28,7 +28,7 @@ on:
 
 env:
   # Set changelog engine from input, default to typescript
-  CHANGELOG_ENGINE: ${{ inputs.changelog_engine || 'typescript' }}
+  CHANGELOG_ENGINE: ${{ github.event.client_payload.changelog_engine || 'typescript' }}
 
 jobs:
   update:
