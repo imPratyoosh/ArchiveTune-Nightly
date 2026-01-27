@@ -28,19 +28,19 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.1
         with:
           token: ${{ secrets.PAT_TOKEN }}
 
       # Setup Bun for TypeScript changelog generation (runs when engine is typescript)
       - name: Setup Bun
         if: env.CHANGELOG_ENGINE == 'typescript'
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2.1.2
 
       # Setup Java for Kotlin changelog generation (runs when engine is kotlin)
       - name: Setup Java
         if: env.CHANGELOG_ENGINE == 'kotlin'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5.2.0
         with:
           distribution: temurin
           java-version: '21'
