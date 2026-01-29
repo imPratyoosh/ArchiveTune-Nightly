@@ -2,7 +2,7 @@
   "commit": {
     "repository": "koiverse/ArchiveTune",
     "branch": "dev",
-    "sha": "23f935d583cf0b01bec75b8a0f6fd7cd1fb09708",
-    "message": "Merge pull request #248 from koiverse/renovate/kotlin-monorepo\n\nUpdate kotlin monorepo to v2.3.0"
+    "sha": "001ce455730cf8cb6730de40220891b1f69beb97",
+    "message": "chore(build.gradle.kts): bump version to 12.5.0"
   }
 }
