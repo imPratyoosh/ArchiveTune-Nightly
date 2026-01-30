@@ -2,7 +2,7 @@
   "commit": {
     "repository": "koiverse/ArchiveTune",
     "branch": "dev",
-    "sha": "001ce455730cf8cb6730de40220891b1f69beb97",
-    "message": "chore(build.gradle.kts): bump version to 12.5.0"
+    "sha": "6fa12ac7ed37a6aa034bbcfe2e9b04944435744d",
+    "message": "feat(playback): expose playback parameters as observable state #256"
   }
 }
