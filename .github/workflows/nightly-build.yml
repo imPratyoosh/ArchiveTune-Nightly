@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      NIGHTLY_KEYSTORE_B64: ${{ secrets.KEYSTORE }}
+      KEYSTORE_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEYSTORE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
     outputs:
       new_version: ${{ env.NEW_VERSION }}
       new_version_code: ${{ env.NEW_VERSION_CODE }}
@@ -77,9 +82,27 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
 
+      - name: Install Android SDK command-line tools and build-tools
+        run: |
+          set -euo pipefail
+          BUILD_TOOLS_VERSION="33.0.2"
+          PLATFORM_VERSION="android-33"
+          ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          cd /tmp
+          curl -sSfL https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -o cmdline-tools.zip
+          unzip -q cmdline-tools.zip -d cmdline-tools-temp
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          mv cmdline-tools-temp/cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "build-tools;$BUILD_TOOLS_VERSION" "platforms;$PLATFORM_VERSION"
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "PATH=$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH" >> $GITHUB_ENV
+          ls -la "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION" || true
+          echo "Installed Android build-tools $BUILD_TOOLS_VERSION and platform $PLATFORM_VERSION"
+
       - name: Restore signing keystore
-        env:
-          NIGHTLY_KEYSTORE_B64: ${{ secrets.KEYSTORE }}
         run: |
           if [ -z "$NIGHTLY_KEYSTORE_B64" ]; then
             echo "NIGHTLY_KEYSTORE_B64 secret is empty or not set — skipping keystore restore"
@@ -90,17 +113,16 @@ jobs:
 
       - name: Locate apksigner and zipalign (set env)
         run: |
-          # Try system path first, then try common Android SDK locations
           if command -v apksigner >/dev/null 2>&1; then
             APKSIGNER_PATH=$(command -v apksigner)
           else
-            ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}
+            ANDROID_HOME=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}
             APKSIGNER_PATH=$(find "$ANDROID_HOME" -type f -name apksigner 2>/dev/null | head -n1 || true)
           fi
           if command -v zipalign >/dev/null 2>&1; then
             ZIPALIGN_PATH=$(command -v zipalign)
           else
-            ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}
+            ANDROID_HOME=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}
             ZIPALIGN_PATH=$(find "$ANDROID_HOME" -type f -name zipalign 2>/dev/null | head -n1 || true)
           fi
           echo "APKSIGNER=${APKSIGNER_PATH}" >> $GITHUB_ENV
@@ -109,46 +131,36 @@ jobs:
           echo "Found zipalign: $ZIPALIGN_PATH"
 
       - name: Sign and zipalign APK
-        env:
-          KEYSTORE_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -e
-          # locate the unsigned/debug apk produced by gradle
           APK_IN="$(ls app/build/outputs/apk/universal/debug/*.apk 2>/dev/null | head -n1)"
           if [ -z "$APK_IN" ]; then
             echo "No APK found at app/build/outputs/apk/universal/debug/"
             exit 1
           fi
           echo "Input APK: $APK_IN"
-          # work on a copy so we keep the original if needed
           APK_SIGNED="${APK_IN%.*}-signed.apk"
           cp "$APK_IN" "$APK_SIGNED"
           echo "Signing $APK_SIGNED with keystore.jks (alias=$KEYSTORE_ALIAS)"
           if [ -z "${APKSIGNER:-}" ]; then
-            # use env var set by previous step
-            APKSIGNER="${APKSIGNER:-$APKSIGNER}"
+            APKSIGNER=$(command -v apksigner || true)
           fi
-          APKSIGNER="${APKSIGNER:-$APKSIGNER}"
-          # prefer using GITHUB_ENV APKSIGNER if set
-          APKSIGNER="${APKSIGNER:-$(echo $APKSIGNER)}"
           if [ -z "$APKSIGNER" ]; then
             echo "apksigner not found. Cannot sign APK."
             exit 1
           fi
           "$APKSIGNER" sign --ks keystore.jks --ks-key-alias "$KEYSTORE_ALIAS" --ks-pass "pass:$KEYSTORE_STORE_PASSWORD" --key-pass "pass:$KEYSTORE_KEY_PASSWORD" "$APK_SIGNED"
           echo "Signed APK: $APK_SIGNED"
-          if [ -n "${ZIPALIGN:-}" ]; then
+          if command -v zipalign >/dev/null 2>&1 || [ -n "${ZIPALIGN:-}" ]; then
+            ZIPALIGN_BIN="${ZIPALIGN:-$(command -v zipalign)}"
             ALIGNED="${APK_SIGNED%.*}-aligned.apk"
             echo "Zipaligning to $ALIGNED"
-            "$ZIPALIGN" -v 4 "$APK_SIGNED" "$ALIGNED"
+            "$ZIPALIGN_BIN" -v 4 "$APK_SIGNED" "$ALIGNED"
             mv "$ALIGNED" "$APK_SIGNED"
             echo "Zipaligned APK: $APK_SIGNED"
           else
             echo "zipalign not found; skipping zipalign"
           fi
-          # move the final signed apk into the filename expected by later steps
           mv "$APK_SIGNED" app/build/outputs/apk/universal/debug/ArchiveTune-Nightly.apk
           echo "Final signed APK: app/build/outputs/apk/universal/debug/ArchiveTune-Nightly.apk"
 
@@ -159,7 +171,6 @@ jobs:
           echo "## Changelog" >> changelog.txt
           echo "" >> changelog.txt
           echo "$CHANGELOG" >> changelog.txt
-          # Escape for GITHUB_OUTPUT
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "## Changelog" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
