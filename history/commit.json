@@ -2,7 +2,7 @@
   "commit": {
     "repository": "koiverse/ArchiveTune",
     "branch": "dev",
-    "sha": "6fa12ac7ed37a6aa034bbcfe2e9b04944435744d",
-    "message": "feat(playback): expose playback parameters as observable state #256"
+    "sha": "1b5f270ebc87640de3deef6fa539fd48cd93032d",
+    "message": "feat(MainActivity.kt): add mediametadata import #268"
   }
 }
