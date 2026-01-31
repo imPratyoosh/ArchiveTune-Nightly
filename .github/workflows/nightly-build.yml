@@ -12,6 +12,7 @@ jobs:
       contents: write
     outputs:
       new_version: ${{ env.NEW_VERSION }}
+      new_version_code: ${{ env.NEW_VERSION_CODE }}
     steps:
       - name: Checkout dev branch
         uses: actions/checkout@v6.0.1
@@ -33,13 +34,28 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Update version name for nightly build
+      - name: Update version name and code for nightly build
         run: |
+          # original values
           ORIGINAL_VERSION=$(grep 'versionName = ' app/build.gradle.kts | sed 's/.*versionName = "\(.*\)"/\1/')
+          ORIGINAL_VERSION_CODE=$(grep 'versionCode = ' app/build.gradle.kts | head -n1 | sed 's/.*versionCode = \(.*\)/\1/' | tr -d '[:space:]')
+
+          # new versionName (prefix N + YYYYMMDD)
           NEW_VERSION="N$(date +%Y%m%d)"
+
+          # prefer CI build number; fallback to date if not available
+          NEW_VERSION_CODE="${GITHUB_RUN_NUMBER}"
+          if [ -z "$NEW_VERSION_CODE" ]; then
+            NEW_VERSION_CODE=$(date +%Y%m%d)
+          fi
+
+          # apply replacements
           sed -i "s/versionName = \"$ORIGINAL_VERSION\"/versionName = \"$NEW_VERSION\"/" app/build.gradle.kts
-          echo "Changed version from $ORIGINAL_VERSION to $NEW_VERSION"
+          sed -i "s/versionCode = $ORIGINAL_VERSION_CODE/versionCode = $NEW_VERSION_CODE/" app/build.gradle.kts
+
+          echo "Changed version from $ORIGINAL_VERSION ($ORIGINAL_VERSION_CODE) to $NEW_VERSION ($NEW_VERSION_CODE)"
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "NEW_VERSION_CODE=$NEW_VERSION_CODE" >> $GITHUB_ENV
 
       - name: Update app name and package
         run: |
@@ -56,7 +72,7 @@ jobs:
 
       - name: Update update check URLs for fork
         run: |
-          sed -i 's|https://api.github.com/repos/koiverse/ArchiveTune/releases|https://api.github.com/repos/sang765/ArchiveTune-Nightly/releases|g' app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt
+          sed -i 's|https://api.github.com/repos/koiverse/ArchiveTune/releases|https://api.github.com/repos/sang765/ArchiveTune-Nightly/releases|g' app/src/main/kotlin/moe/koiverse/archivetune/utils/U[...]
           sed -i 's|https://github.com/koiverse/ArchiveTune/releases|https://github.com/sang765/ArchiveTune-Nightly/releases|g' app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt
           sed -i 's/ArchiveTune.apk/ArchiveTune-Nightly.apk/' app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt
           sed -i 's/app-${architecture}-release.apk/app-${architecture}-nightly.apk/' app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt
