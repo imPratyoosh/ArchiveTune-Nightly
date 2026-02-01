@@ -154,7 +154,7 @@ jobs:
             echo "apksigner not found. Cannot sign APK."
             exit 1
           fi
-          "$APKSIGNER" sign --ks keystore.jks --ks-key-alias "$KEYSTORE_ALIAS" --ks-pass "pass:$KEYSTORE_STORE_PASSWORD" --key-pass "pass:$KEYSTORE_KEY_PASSWORD" "$APK_SIGNED"
+          "$APKSIGNER" sign --ks keystore.jks --ks-key-alias "$KEYSTORE_ALIAS" --ks-pass "pass:$KEYSTORE_STORE_PASSWORD" --key-pass "pass:$KEYSTORE_KEY_PASSWORD" --v1-signing-enabled true --v3-signing-enabled true "$APK_SIGNED"
           echo "Signed APK: $APK_SIGNED"
           if command -v zipalign >/dev/null 2>&1 || [ -n "${ZIPALIGN:-}" ]; then
             ZIPALIGN_BIN="${ZIPALIGN:-$(command -v zipalign)}"
