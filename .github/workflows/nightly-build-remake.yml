@@ -200,7 +200,7 @@ jobs:
 
             ${{ steps.changelog.outputs.changelog }}
           files: |
-            app/build/outputs/apk/universal/debug/*.apk
+            app/build/outputs/apk/universal/debug/ArchiveTune-Nightly.apk
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
