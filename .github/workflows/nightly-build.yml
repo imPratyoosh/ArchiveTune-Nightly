@@ -1,4 +1,4 @@
-name: Nightly Build (New)
+name: Nightly Build
 
 on:
   repository_dispatch:
