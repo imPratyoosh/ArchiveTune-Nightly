@@ -195,12 +195,12 @@ jobs:
       - name: Create nightly release
         uses: softprops/action-gh-release@v2.5.0
         with:
-          tag_name: ${{ needs.prepare.outputs.new_version }}
-          name: ${{ needs.prepare.outputs.new_version }}
+          tag_name: ${{ needs.build.outputs.new_version }}
+          name: ${{ needs.build.outputs.new_version }}
           body: |
-            Release **ArchiveTune Nightly** artifact, generated on **${{ needs.prepare.outputs.date }} - ${{ needs.prepare.outputs.time }} (UTC +0)**
+            Release **ArchiveTune Nightly** artifact, generated on **${{ needs.build.outputs.date }} - ${{ needs.build.outputs.time }} (UTC +0)**
 
-            ${{ needs.prepare.outputs.changelog }}
+            ${{ needs.build.outputs.changelog }}
           files: |
             downloaded_artifacts/**/*.apk
         env:
@@ -212,7 +212,7 @@ jobs:
             -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/dispatches \
-            -d '{"event_type": "update-release-notes", "client_payload": {"new_version": "${{ needs.prepare.outputs.new_version }}", "changelog_engine": "kotlin"}}'
+            -d '{"event_type": "update-release-notes", "client_payload": {"new_version": "${{ needs.build.outputs.new_version }}", "changelog_engine": "kotlin"}}'
 
       - name: Notify on failure
         if: failure()
