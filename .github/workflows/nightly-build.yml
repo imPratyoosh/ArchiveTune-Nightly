@@ -128,7 +128,7 @@ jobs:
 
           # Sign the APK using apksigner
           apksigner sign \
-            --ks release.keystore \
+            --ks sang765.jks \
             --ks-key-alias ${{ secrets.KEY_ALIAS }} \
             --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
             --key-pass pass:${{ secrets.KEY_PASSWORD }} \
