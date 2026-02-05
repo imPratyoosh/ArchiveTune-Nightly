@@ -126,3 +126,4 @@ bun.lock
 
 ## test file
 changelog.md
+package-lock.json
