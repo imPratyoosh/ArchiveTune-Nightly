@@ -56,9 +56,6 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Decode keystore
-        run: echo "$KEYSTORE_B64" | base64 -d > release.keystore
-
       - name: Update version name and code for nightly build
         run: |
           # original values
@@ -82,7 +79,7 @@ jobs:
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
           echo "NEW_VERSION_CODE=$NEW_VERSION_CODE" >> $GITHUB_ENV
 
-      - name: Update app name, package, and namespace
+      - name: Update app name, package, and namespace for nightly
         run: |
           sed -i 's/applicationId = "moe.koiverse.archivetune"/applicationId = "moe.koiverse.archivetune.nightly"/' app/build.gradle.kts
           sed -i 's/namespace = "moe.koiverse.archivetune"/namespace = "moe.koiverse.archivetune.nightly"/' app/build.gradle.kts
@@ -111,70 +108,30 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
 
-      - name: Resolve release output directory
-        id: release_dir
-        shell: bash
-        run: |
-          set -euo pipefail
-          ABI="${{ matrix.abi }}"
-          ABI_LOWER=$(echo "$ABI" | tr '[:upper:]' '[:lower:]')
-          CANDIDATES=(
-            "app/build/outputs/apk/${ABI_LOWER}/release"
-            "app/build/outputs/apk/${ABI_LOWER}Release/release"
-          )
-          for d in "${CANDIDATES[@]}"; do
-            if [ -d "$d" ]; then
-              echo "release_dir=$d" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          done
-
-          FOUND_METADATA="$(
-            find app/build/outputs/apk -type f -name "output-metadata.json" \
-              \( \
-                -path "*/${ABI_LOWER}/release/output-metadata.json" -o \
-                -path "*/${ABI_LOWER}Release/release/output-metadata.json" -o \
-                -path "*/${ABI_LOWER}/*/release/output-metadata.json" -o \
-                -path "*/${ABI_LOWER}Release/*/release/output-metadata.json" \
-              \) \
-              | head -n 1 || true
-          )"
-          if [ -n "${FOUND_METADATA:-}" ]; then
-            echo "release_dir=$(dirname "$FOUND_METADATA")" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "Could not resolve APK release output directory for ABI=$ABI"
-          find app/build/outputs/apk -maxdepth 6 -type d -print || true
-          exit 1
-
       - name: Sign APK
         uses: ilharp/sign-android-release@v2.0.0
         with:
-          releaseDir: ${{ steps.release_dir.outputs.release_dir }}/
-          signingKey: ${{ secrets.ANDROID_SIGNING_KEY }}
-          keyAlias: archiveTune
+          releaseDir: app/build/outputs/apk/${{ matrix.abi }}/release/
+          signingKey: ${{ secrets.KEYSTORE }}
+          keyAlias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
           buildToolsVersion: 35.0.0
 
-      - name: Move and rename signed APKs
+      - name: Move signed APK
         run: |
-          RELEASE_DIR="${{ steps.release_dir.outputs.release_dir }}"
-          mkdir -p "$RELEASE_DIR/out"
-          ABI="${{ matrix.abi }}"
-          if [ "$ABI" = "Universal" ]; then
-            find "$RELEASE_DIR" -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} "$RELEASE_DIR/out/ArchiveTune-Nightly.apk"
+          mkdir -p app/build/outputs/apk/${{ matrix.abi }}/release/out
+          if [ "${{ matrix.abi }}" = "universal" ]; then
+            find app/build/outputs/apk/${{ matrix.abi }}/release/ -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} app/build/outputs/apk/${{ matrix.abi }}/release/out/ArchiveTune-Nightly.apk
           else
-            ABI_LOWER=$(echo "$ABI" | tr '[:upper:]' '[:lower:]')
-            find "$RELEASE_DIR" -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} "$RELEASE_DIR/out/app-${ABI_LOWER}-nightly.apk"
+            find app/build/outputs/apk/${{ matrix.abi }}/release/ -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} app/build/outputs/apk/${{ matrix.abi }}/release/out/app-${{ matrix.abi }}-nightly.apk
           fi
 
-      - name: Upload APKs
+      - name: Upload Signed APK
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ matrix.abi == 'Universal' && 'ArchiveTune-Nightly' || format('app-{0}-nightly', matrix.abi) }}
-          path: ${{ steps.release_dir.outputs.release_dir }}/out/${{ matrix.abi == 'Universal' && 'ArchiveTune-Nightly.apk' || format('app-{0}-nightly.apk', matrix.abi) }}
+          name: ${{ matrix.abi == 'universal' && 'ArchiveTune-Nightly' || format('app-{0}-nightly', matrix.abi) }}
+          path: app/build/outputs/apk/${{ matrix.abi }}/release/out/*
 
   create-release:
     needs: [build]
