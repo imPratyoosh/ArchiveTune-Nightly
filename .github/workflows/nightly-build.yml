@@ -109,9 +109,9 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
 
-      - name: Decode keystore
+      - name: Download sign key
         run: |
-          echo "${{ secrets.KEYSTORE }}" | base64 -d > release.keystore
+          curl -O "https://raw.githubusercontent.com/sang765/ArchiveTune-Nightly/main/sang765.jks"
 
       - name: Sign APK with apksigner
         run: |
