@@ -2,7 +2,7 @@
   "commit": {
     "repository": "koiverse/ArchiveTune",
     "branch": "dev",
-    "sha": "fd18ac198ff2380c5e75e257fcb3e5421a70f79c",
-    "message": "fix(player): prevents the previous chain where dismissing triggered a playlist/timeline change and the service’s recommendation/autoload logic re-populated the queue and resumed playback"
+    "sha": "5a5cf9de63354e64e70e78bb15e689e30a70a74f",
+    "message": "build(proguard-rules): Add dontwarn rule for java.lang.management"
   }
 }
