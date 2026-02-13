@@ -93,30 +93,22 @@ jobs:
           RELEASE_TAG="${{ steps.release.outputs.release_tag }}"
           
           # Get release body (contains changelog)
-          RELEASE_BODY=$(gh release view "$RELEASE_TAG" --json body --jq '.body // empty')
+          gh release view "$RELEASE_TAG" --json body --jq '.body // empty' > /tmp/release_body.txt
           RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$RELEASE_TAG"
-          
-          # Save release body to file for processing
-          echo "$RELEASE_BODY" > /tmp/release_body.txt
           
           echo "release_url=$RELEASE_URL" >> $GITHUB_OUTPUT
           
           # Extract changelog section (between ## Changelog and the note)
-          # The changelog is already formatted in the release notes
-          CHANGELOG=$(echo "$RELEASE_BODY" | sed -n '/## .*[Cc]hangelog/,/> \[!NOTE\]/p' | head -n -1 | sed 's/> \[!NOTE\]//g' | sed '/^$/d' | head -50)
+          # Save to file to avoid shell escaping issues
+          sed -n '/## .*[Cc]hangelog/,/> \[!NOTE\]/p' /tmp/release_body.txt | head -n -1 | sed 's/> \[!NOTE\]//g' | sed '/^$/d' | head -50 > /tmp/changelog.txt
           
           # If no changelog found, try alternative pattern
-          if [ -z "$CHANGELOG" ]; then
-            CHANGELOG=$(echo "$RELEASE_BODY" | grep -A 50 "## .*[Cc]hangelog" | head -50)
+          if [ ! -s /tmp/changelog.txt ]; then
+            grep -A 50 "## .*[Cc]hangelog" /tmp/release_body.txt | head -50 > /tmp/changelog.txt
           fi
           
-          # Save changelog for Telegram message (truncated if too long)
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
           echo "Release URL: $RELEASE_URL"
-          echo "Changelog extracted"
+          echo "Changelog extracted to /tmp/changelog.txt"
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
@@ -145,7 +137,6 @@ jobs:
       - name: Send changelog to Telegram
         if: steps.check.outputs.has_apks == 'true'
         run: |
-          CHANGELOG="${{ steps.release_info.outputs.changelog }}"
           THREAD_ID="${{ env.TELEGRAM_THREAD_ID }}"
           
           # Build thread_id parameter if specified
@@ -154,14 +145,11 @@ jobs:
             THREAD_PARAM=", \"message_thread_id\": \"$THREAD_ID\""
           fi
           
-          if [ -n "$CHANGELOG" ]; then
-            # Escape special characters for MarkdownV2
-            CHANGELOG_ESCAPED=$(echo "$CHANGELOG" | sed 's/\\/\\\\/g' | sed 's/_/\\_/g' | sed 's/\*/\\*/g' | sed 's/\[/\\[/g' | sed 's/\]/\\]/g' | sed 's/(/\\(/g' | sed 's/)/\\)/g' | sed 's/~/\\~/g' | sed 's/`/\\`/g' | sed 's/>/\\>/g' | sed 's/#/\\#/g' | sed 's/+/\\+/g' | sed 's/-/\\-/g' | sed 's/=/\\=/g' | sed 's/|/\\|/g' | sed 's/{/\\{/g' | sed 's/}/\\}/g' | sed 's/\./\\./g' | sed 's/!/\\!/g')
+          if [ -s /tmp/changelog.txt ]; then
+            # Use Python script to escape changelog for MarkdownV2
+            CHANGELOG_ESCAPED=$(python3 scripts/escape-changelog.py)
             
-            # Truncate if too long (Telegram limit is 4096 chars)
-            CHANGELOG_TRUNCATED=$(echo "$CHANGELOG_ESCAPED" | head -c 3500)
-            
-            MESSAGE="*Changelog:*%0A$CHANGELOG_TRUNCATED"
+            MESSAGE="*Changelog:*%0A$CHANGELOG_ESCAPED"
             
             # Send changelog message with thread support
             curl -X POST "https://api.telegram.org/bot${{ env.TELEGRAM_BOT_TOKEN }}/sendMessage" \
