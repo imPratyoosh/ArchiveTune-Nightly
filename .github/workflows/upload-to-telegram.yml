@@ -66,13 +66,18 @@ jobs:
           # Download all APK files from the release
           gh release download "$RELEASE_TAG" --pattern "*.apk" --dir apks || echo "No APK files found"
           
+          # Show full directory structure
+          echo "=== Directory structure ==="
+          find . -type f -name "*.apk" 2>/dev/null || echo "No APK files found"
+          echo "=========================="
+          
           # Count APK files
           APK_COUNT=$(find apks -name "*.apk" -type f | wc -l)
           echo "apk_count=$APK_COUNT" >> $GITHUB_OUTPUT
           echo "Downloaded $APK_COUNT APK file(s)"
           
-          # List downloaded files
-          ls -la apks/
+          # List downloaded files with full path
+          ls -la "$PWD/apks/" 2>/dev/null || echo "apks dir empty"
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
@@ -163,12 +168,19 @@ jobs:
           RELEASE_TAG="${{ steps.release.outputs.release_tag }}"
           THREAD_ID="${{ env.TELEGRAM_THREAD_ID }}"
           
+          # Get absolute path to apks directory
+          APK_DIR="$PWD/apks"
+          echo "APK Directory: $APK_DIR"
+          echo "Files in directory:"
+          ls -la "$APK_DIR"
+          
           # Upload each APK file
-          for APK_FILE in apks/*.apk; do
+          for APK_FILE in "$APK_DIR"/*.apk; do
             if [ -f "$APK_FILE" ]; then
               FILENAME=$(basename "$APK_FILE")
               FILESIZE=$(stat -c%s "$APK_FILE")
               
+              echo "Full path: $APK_FILE"
               echo "Uploading: $FILENAME (${FILESIZE} bytes)"
               
               # Check file size (Telegram limit is 50MB for bots, 2GB for premium)
@@ -188,19 +200,20 @@ jobs:
                   -d "{\"chat_id\": \"${{ env.TELEGRAM_CHAT_ID }}\"$THREAD_PARAM, \"text\": \"File *${FILENAME}* is too large for direct upload \\\\(${FILESIZE} bytes\\\\)\\.\\n[Download directly](${DOWNLOAD_URL})\", \"parse_mode\": \"MarkdownV2\"}"
               else
                 # Upload file to Telegram with thread support
+                # Use absolute path
                 if [ -n "$THREAD_ID" ]; then
-                  curl -X POST "https://api.telegram.org/bot${{ env.TELEGRAM_BOT_TOKEN }}/sendDocument" \
+                  curl --fail -X POST "https://api.telegram.org/bot${{ env.TELEGRAM_BOT_TOKEN }}/sendDocument" \
                     -F "chat_id=${{ env.TELEGRAM_CHAT_ID }}" \
                     -F "message_thread_id=$THREAD_ID" \
-                    -F "document=@$APK_FILE" \
+                    -F "document=@\"$APK_FILE\"" \
                     -F "caption=Release: $RELEASE_TAG - $FILENAME" \
-                    -F "parse_mode=Markdown"
+                    -F "parse_mode=Markdown" || echo "Failed to upload $FILENAME"
                 else
-                  curl -X POST "https://api.telegram.org/bot${{ env.TELEGRAM_BOT_TOKEN }}/sendDocument" \
+                  curl --fail -X POST "https://api.telegram.org/bot${{ env.TELEGRAM_BOT_TOKEN }}/sendDocument" \
                     -F "chat_id=${{ env.TELEGRAM_CHAT_ID }}" \
-                    -F "document=@$APK_FILE" \
+                    -F "document=@\"$APK_FILE\"" \
                     -F "caption=Release: $RELEASE_TAG - $FILENAME" \
-                    -F "parse_mode=Markdown"
+                    -F "parse_mode=Markdown" || echo "Failed to upload $FILENAME"
                 fi
                 
                 echo "Uploaded: $FILENAME"
