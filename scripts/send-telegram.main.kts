@@ -5,21 +5,11 @@
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-import java.io.File
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import kotlin.system.exitProcess
-
-// --- Configuration ---
-data class Config(
-    val botToken: String,
-    val chatId: String,
-    val threadId: String?,
-    val releaseTag: String,
-    val repository: String
-)
 
 // --- Global Instances ---
 val gson = Gson()
@@ -43,25 +33,6 @@ fun fetch(url: String, method: String = "GET", body: String? = null): String {
     return response.body()
 }
 
-fun escapeMarkdownV2(text: String): String {
-    // Characters that need escaping in MarkdownV2: \ _ * [ ] ( ) ~ ` > # + - = | { } . !
-    val specialChars = listOf("\\", "_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!")
-    var escaped = text
-    for (char in specialChars) {
-        escaped = escaped.replace(char, "\\$char")
-    }
-    return escaped
-}
-
-fun formatSize(bytes: Long): String {
-    return when {
-        bytes >= 1024 * 1024 * 1024 -> "${bytes / (1024 * 1024 * 1024)}GB"
-        bytes >= 1024 * 1024 -> "${bytes / (1024 * 1024)}MB"
-        bytes >= 1024 -> "${bytes / 1024}KB"
-        else -> "$bytes B"
-    }
-}
-
 fun main() {
     try {
         // 1. Get environment variables
@@ -82,7 +53,7 @@ fun main() {
         
         val releaseUrl = "https://github.com/$repository/releases/tag/$releaseTag"
         
-        // 2. Build the message
+        // 2. Build the message (plain text, no markdown)
         val apkLinks = listOf(
             "Mobile 64-bit (arm64)" to "app-arm64-nightly.apk",
             "Mobile 32-bit (armeabi)" to "app-armeabi-nightly.apk",
@@ -97,38 +68,34 @@ fun main() {
         }
         
         val message = """
-            *ArchiveTune Nightly $releaseTag Released*
+            ArchiveTune Nightly $releaseTag Released
             
             Check out changelog here: $releaseUrl
             
-            *Download:*
+            Download:
             $downloadSection
         """.trimIndent()
         
-        // 3. Escape for MarkdownV2
-        val escapedMessage = escapeMarkdownV2(message)
-        
-        // 4. Build JSON payload
+        // 3. Build JSON payload (no markdown)
         val json = JsonObject().apply {
             addProperty("chat_id", chatId)
-            addProperty("text", escapedMessage)
-            addProperty("parse_mode", "MarkdownV2")
+            addProperty("text", message)
             threadId?.let { addProperty("message_thread_id", it) }
         }
         
-        // 5. Send to Telegram
+        // 4. Send to Telegram
         val url = "https://api.telegram.org/bot$botToken/sendMessage"
         val response = fetch(url, "POST", gson.toJson(json))
         
         println("Response: $response")
         
         // Parse response
-        val responseObj = gson.fromJson(response, JsonObject::class.javaresponseObj.get(")
-        if (ok").asBoolean) {
-            println("✅ Message sent successfully!")
+        val responseObj = gson.fromJson(response, JsonObject::class.java)
+        if (responseObj.get("ok").asBoolean) {
+            println("Message sent successfully!")
         } else {
             val error = responseObj.get("description")?.asString ?: "Unknown error"
-            println("❌ Error: $error")
+            println("Error: $error")
             exitProcess(1)
         }
         
