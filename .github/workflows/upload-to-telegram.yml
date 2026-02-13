@@ -56,10 +56,11 @@ jobs:
 
       - name: Setup Kotlin
         run: |
-          curl -sL https://github.com/Kotlin/kotlin-nightly-release/releases/latest/download/kotlin-native-linux-x86_64-release.tar.gz -o /tmp/kotlin.tar.gz
-          mkdir -p /tmp/kotlin
-          tar -xzf /tmp/kotlin.tar.gz -C /tmp/kotlin --strip-components=1
-          echo "/tmp/kotlin/bin" >> $GITHUB_PATH
+          # Install Kotlin compiler manually using SDKMAN or download directly
+          curl -s "https://get.sdkman.io" | bash
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk install kotlin 1.9.24
+          echo "$HOME/.sdkman/candidates/kotlin/current/bin" >> $GITHUB_PATH
 
       - name: Send Telegram notification
         run: |
