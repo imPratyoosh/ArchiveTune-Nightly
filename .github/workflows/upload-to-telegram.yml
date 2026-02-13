@@ -64,9 +64,8 @@ jobs:
             THREAD_PARAM=", \"message_thread_id\": \"$THREAD_ID\""
           fi
           
-          # Read message and URL encode
-          MESSAGE=$(cat /tmp/message.txt)
-          MESSAGE_ENC=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$MESSAGE'''))")
+          # Escape for MarkdownV2 and URL encode
+          MESSAGE_ENC=$(python3 scripts/escape-markdown.py)
           
           # Send
           curl -s -X POST "https://api.telegram.org/bot${{ env.TELEGRAM_BOT_TOKEN }}/sendMessage" \
