@@ -162,65 +162,46 @@ jobs:
               -d "{\"chat_id\": \"${{ env.TELEGRAM_CHAT_ID }}\"$THREAD_PARAM, \"text\": \"$MESSAGE\", \"parse_mode\": \"MarkdownV2\", \"disable_web_page_preview\": true}" || echo "Failed to send changelog"
           fi
 
-      - name: Upload APK files to Telegram
+      - name: Send APK download links to Telegram
         if: steps.check.outputs.has_apks == 'true'
         run: |
           RELEASE_TAG="${{ steps.release.outputs.release_tag }}"
           THREAD_ID="${{ env.TELEGRAM_THREAD_ID }}"
           
+          # Build thread_id parameter if specified
+          THREAD_PARAM=""
+          if [ -n "$THREAD_ID" ]; then
+            THREAD_PARAM=", \"message_thread_id\": \"$THREAD_ID\""
+          fi
+          
           # Get absolute path to apks directory
           APK_DIR="$PWD/apks"
-          echo "APK Directory: $APK_DIR"
-          echo "Files in directory:"
-          ls -la "$APK_DIR"
           
-          # Upload each APK file
+          # Send download links for each APK
+          echo "Sending APK download links..."
+          
           for APK_FILE in "$APK_DIR"/*.apk; do
             if [ -f "$APK_FILE" ]; then
               FILENAME=$(basename "$APK_FILE")
               FILESIZE=$(stat -c%s "$APK_FILE")
               
-              echo "Full path: $APK_FILE"
-              echo "Uploading: $FILENAME (${FILESIZE} bytes)"
+              # Format file size in MB
+              SIZE_MB=$((FILESIZE / 1024 / 1024))
               
-              # Check file size (Telegram limit is 50MB for bots, 2GB for premium)
-              if [ "$FILESIZE" -gt 52428800 ]; then
-                echo "Warning: File $FILENAME exceeds 50MB limit. Skipping direct upload."
-                # Send a message with download link instead
-                DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/$RELEASE_TAG/$FILENAME"
-                
-                # Build thread_id parameter for message
-                THREAD_PARAM=""
-                if [ -n "$THREAD_ID" ]; then
-                  THREAD_PARAM=", \"message_thread_id\": \"$THREAD_ID\""
-                fi
-                
-                curl -X POST "https://api.telegram.org/bot${{ env.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-                  -H "Content-Type: application/json" \
-                  -d "{\"chat_id\": \"${{ env.TELEGRAM_CHAT_ID }}\"$THREAD_PARAM, \"text\": \"File *${FILENAME}* is too large for direct upload \\\\(${FILESIZE} bytes\\\\)\\.\\n[Download directly](${DOWNLOAD_URL})\", \"parse_mode\": \"MarkdownV2\"}"
-              else
-                # Upload file to Telegram with thread support
-                # Use absolute path
-                if [ -n "$THREAD_ID" ]; then
-                  curl --fail -X POST "https://api.telegram.org/bot${{ env.TELEGRAM_BOT_TOKEN }}/sendDocument" \
-                    -F "chat_id=${{ env.TELEGRAM_CHAT_ID }}" \
-                    -F "message_thread_id=$THREAD_ID" \
-                    -F "document=@\"$APK_FILE\"" \
-                    -F "caption=Release: $RELEASE_TAG - $FILENAME" \
-                    -F "parse_mode=Markdown" || echo "Failed to upload $FILENAME"
-                else
-                  curl --fail -X POST "https://api.telegram.org/bot${{ env.TELEGRAM_BOT_TOKEN }}/sendDocument" \
-                    -F "chat_id=${{ env.TELEGRAM_CHAT_ID }}" \
-                    -F "document=@\"$APK_FILE\"" \
-                    -F "caption=Release: $RELEASE_TAG - $FILENAME" \
-                    -F "parse_mode=Markdown" || echo "Failed to upload $FILENAME"
-                fi
-                
-                echo "Uploaded: $FILENAME"
-              fi
+              # Create download URL
+              DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/$RELEASE_TAG/$FILENAME"
               
-              # Small delay between uploads to avoid rate limiting
-              sleep 2
+              MESSAGE="*Download $FILENAME*%0ASize: ${SIZE_MB}MB%0A[$DOWNLOAD_URL]($DOWNLOAD_URL)"
+              
+              echo "Sending link for: $FILENAME (${SIZE_MB}MB)"
+              
+              # Send download link message
+              curl -X POST "https://api.telegram.org/bot${{ env.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+                -H "Content-Type: application/json" \
+                -d "{\"chat_id\": \"${{ env.TELEGRAM_CHAT_ID }}\"$THREAD_PARAM, \"text\": \"$MESSAGE\", \"parse_mode\": \"MarkdownV2\", \"disable_web_page_preview\": false}"
+              
+              # Small delay between messages
+              sleep 1
             fi
           done
 
@@ -238,7 +219,7 @@ jobs:
             THREAD_PARAM=", \"message_thread_id\": \"$THREAD_ID\""
           fi
           
-          MESSAGE="*Upload complete\\!*%0A%0ARelease: $RELEASE_TAG%0AFiles uploaded: $APK_COUNT APK file\\(s\\)%0A%0ADownload all files from the [release page]($RELEASE_URL)."
+          MESSAGE="*Upload complete\\!*%0A%0ARelease: $RELEASE_TAG%0AFiles available: $APK_COUNT APK file\\(s\\)%0A%0ADownload from the [release page]($RELEASE_URL) or use direct links above."
           
           curl -X POST "https://api.telegram.org/bot${{ env.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
@@ -250,5 +231,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Release Tag:** ${{ steps.release.outputs.release_tag }}" >> $GITHUB_STEP_SUMMARY
           echo "- **APK Files Found:** ${{ steps.download.outputs.apk_count }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Uploaded to Telegram:** ${{ steps.check.outputs.has_apks }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Method:** Download links sent to Telegram" >> $GITHUB_STEP_SUMMARY
           echo "- **Thread ID:** ${{ env.TELEGRAM_THREAD_ID }}" >> $GITHUB_STEP_SUMMARY
