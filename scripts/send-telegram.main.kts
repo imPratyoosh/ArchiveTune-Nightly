@@ -67,14 +67,7 @@ fun main() {
             "- $name: $url"
         }
         
-        val message = """
-            ArchiveTune Nightly $releaseTag Released
-            
-            Check out changelog here: $releaseUrl
-            
-            Download:
-            $downloadSection
-        """.trimIndent()
+        val message = "ArchiveTune Nightly $releaseTag Released\n\nCheck out changelog here: $releaseUrl\n\nDownload:\n$downloadSection"
         
         // 3. Build JSON payload (no markdown)
         val json = JsonObject().apply {
