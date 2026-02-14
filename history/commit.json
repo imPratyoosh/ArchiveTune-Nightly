@@ -2,7 +2,7 @@
   "commit": {
     "repository": "koiverse/ArchiveTune",
     "branch": "dev",
-    "sha": "3e6991f3c3a2d065fc073aaec8db2e04a6def3d4",
-    "message": "refactor(MusicService): Remove denied Together action Toasts"
+    "sha": "3dde8d1c64c10f138666a4953b192536e38296a8",
+    "message": "feat(TogetherClient): Emit ServerIssue event for ServerError"
   }
 }
