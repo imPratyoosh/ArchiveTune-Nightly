@@ -2,7 +2,7 @@
   "commit": {
     "repository": "koiverse/ArchiveTune",
     "branch": "dev",
-    "sha": "29bf13bdf86e10fb70e206f160d2d078f8429ae7",
-    "message": "refactor(LyricsMenuViewModel): refactor refetchLyrics to use viewModelScope.launch and add error handling"
+    "sha": "8255abedcec569318e7d44a8cec69789d0766df5",
+    "message": "feat(MainActivity): Add getAsync utility import #311"
   }
 }
