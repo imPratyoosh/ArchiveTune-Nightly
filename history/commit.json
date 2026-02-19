@@ -2,7 +2,7 @@
   "commit": {
     "repository": "koiverse/ArchiveTune",
     "branch": "dev",
-    "sha": "674d840457fa121b756f95ed02e093d4f025fc73",
-    "message": "chore(ArchiveTuneKoiverseServer): Update server URL"
+    "sha": "6052871ecb5ae2be19773f41978c2c51b25b6797",
+    "message": "style(PlayerComponents): Use textButtonColor for PlayerPlaybackControls color"
   }
 }
