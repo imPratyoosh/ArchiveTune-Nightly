@@ -2,7 +2,7 @@
   "commit": {
     "repository": "koiverse/ArchiveTune",
     "branch": "dev",
-    "sha": "8694c919296bb557b58a210759f553b2ba91a4b7",
-    "message": "fix(playback): improve handoff transition stability and timing"
+    "sha": "5566dd2ec02e1d9081eecb17379184d927b0d4aa",
+    "message": "refactor(PlayerSettings.kt): remove android music player stream client option"
   }
 }
