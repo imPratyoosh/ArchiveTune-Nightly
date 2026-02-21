@@ -179,7 +179,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          repository: sang765/ArchiveTune-Nightly
+          repository: imPratyoosh/ArchiveTune-Nightly
           ref: main
 
       - name: Download all APKs
@@ -195,7 +195,7 @@ jobs:
           body: |
             Release **ArchiveTune Nightly** artifact, generated on **${{ needs.build.outputs.date }} - ${{ needs.build.outputs.time }} (UTC +0)**
 
-            ***Please wait, we still get the changelog...***
+            ***Changelogs → https://github.com/koiverse/ArchiveTune/commits/dev/***
           files: |
             downloaded_artifacts/**/*.apk
         env:
