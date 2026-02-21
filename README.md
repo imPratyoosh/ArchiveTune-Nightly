@@ -1,3 +1,5 @@
+About this fork: I only made this repo to just change app name from "ArchiveTune Nightly" to just "ArchiveTune". Released apk's are signed with my keys.
+
 <div align="center">
 <img width="150" height="150" src="https://raw.githubusercontent.com/sang765/ArchiveTune-Nightly/main/images/logo.gif" alt="Archivetune">
 
