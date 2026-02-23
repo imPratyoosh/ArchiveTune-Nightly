@@ -1,6 +1,8 @@
 name: Trigger Workflows
 
 on:
+  schedule:
+    - cron: "30 18 * * *" # 12:00 AM IST (midnight)
   workflow_dispatch: # Using https://console.cron-job.org for schedule
 
 jobs:
