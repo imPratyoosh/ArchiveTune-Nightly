@@ -1,5 +1,8 @@
-<div align="center">
-<img width="150" height="150" src="https://raw.githubusercontent.com/sang765/ArchiveTune-Nightly/main/images/logo.gif" alt="Archivetune">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="icon-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="icon-light.png">
+  <img src="icon-light.png" alt="ArchiveTune icon" width="120">
+</picture>
 
 # <img width="30" height="30" src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" alt="Archivetune"> ArchiveTune Nightly <img width="30" height="30" src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" alt="Archivetune">
 **CI build for Nightly version of [ArchiveTune](https://github.com/koiverse/ArchiveTune). Redefining the YouTube Music Experience on Android.**  
