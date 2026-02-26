@@ -11,9 +11,6 @@
 
 <sub>Don't forget to leave a ⭐ for this repository if you visit. Thank you so much ♥️</sub>
 
-</div>
-
-<h4 align="center">Download</h4>
 
 <div align="center">
 
