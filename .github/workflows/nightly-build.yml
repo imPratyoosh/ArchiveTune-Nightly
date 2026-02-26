@@ -9,34 +9,27 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+# ===============================
+# 1️⃣ PREPARE (single-source data)
+# ===============================
 jobs:
-  build:
+  prepare:
     runs-on: ubuntu-latest
     outputs:
-      new_version: ${{ env.NEW_VERSION }}
-      new_version_code: ${{ env.NEW_VERSION_CODE }}
-      changelog: ${{ steps.changelog.outputs.changelog }}
+      new_version: ${{ steps.version.outputs.new_version }}
+      new_version_code: ${{ steps.version.outputs.new_version_code }}
       date: ${{ steps.date.outputs.date }}
       time: ${{ steps.time.outputs.time }}
-    strategy:
-      matrix:
-        abi: [ 'arm64', 'armeabi', 'x86', 'x86_64', 'universal' ]
 
     steps:
-      - uses: actions/checkout@v6
-        with:
-          repository: koiverse/ArchiveTune
-          ref: dev
-
-      - name: Generate changelog
-        id: changelog
+      - name: Generate version
+        id: version
         run: |
-          CHANGELOG=$(git log --pretty=format="- ([%h](https://github.com/koiverse/ArchiveTune/commit/%H)): **\"%s\"** by **@%an**" --since="1 day ago" --no-merges)
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "## Changelog" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          NEW_VERSION="N$(date +%Y%m%d)"
+          NEW_VERSION_CODE="${GITHUB_RUN_NUMBER}"
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "new_version_code=$NEW_VERSION_CODE" >> $GITHUB_OUTPUT
 
       - name: Get Date
         id: date
@@ -46,13 +39,39 @@ jobs:
         id: time
         run: echo "time=$(date +'%I:%M:%S %p')" >> $GITHUB_OUTPUT
 
+
+# ===============================
+# 2️⃣ BUILD (matrix, parallel)
+# ===============================
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [arm64, armeabi, x86, x86_64, universal]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: koiverse/ArchiveTune
+          ref: dev
+
+      - name: Generate changelog
+        run: |
+          git log \
+            --pretty=format="- ([%h](https://github.com/koiverse/ArchiveTune/commit/%H)): **\"%s\"** by **@%an**" \
+            --since="24 hours ago" \
+            --no-merges > CHANGELOG.md || true
+
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Set Up Gradle
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
         with:
           cache-cleanup: on-success
@@ -60,88 +79,67 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Update version name and code for nightly build
+      # ---------------------------
+      # SAFE VERSION UPDATE
+      # ---------------------------
+      - name: Update version for nightly
         run: |
-          # original values
-          ORIGINAL_VERSION=$(grep 'versionName = ' app/build.gradle.kts | sed 's/.*versionName = "\(.*\)"/\1/')
-          ORIGINAL_VERSION_CODE=$(grep 'versionCode = ' app/build.gradle.kts | head -n1 | sed 's/.*versionCode = \(.*\)/\1/' | tr -d '[:space:]')
+          sed -i \
+            "s/versionName = \".*\"/versionName = \"${{ needs.prepare.outputs.new_version }}\"/" \
+            app/build.gradle.kts
 
-          # new versionName (prefix N + YYYYMMDD)
-          NEW_VERSION="N$(date +%Y%m%d)"
+          sed -i \
+            "s/versionCode = .*/versionCode = ${{ needs.prepare.outputs.new_version_code }}/" \
+            app/build.gradle.kts
 
-          # prefer CI build number; fallback to date if not available
-          NEW_VERSION_CODE="${GITHUB_RUN_NUMBER}"
-          if [ -z "$NEW_VERSION_CODE" ]; then
-            NEW_VERSION_CODE=$(date +%Y%m%d)
-          fi
-
-          # apply replacements
-          sed -i "s/versionName = \"$ORIGINAL_VERSION\"/versionName = \"$NEW_VERSION\"/" app/build.gradle.kts
-          sed -i "s/versionCode = $ORIGINAL_VERSION_CODE/versionCode = $NEW_VERSION_CODE/" app/build.gradle.kts
-
-          echo "Changed version from $ORIGINAL_VERSION ($ORIGINAL_VERSION_CODE) to $NEW_VERSION ($NEW_VERSION_CODE)"
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "NEW_VERSION_CODE=$NEW_VERSION_CODE" >> $GITHUB_ENV
-
-      - name: Update app name and package for nightly
+      # ---------------------------
+      # SAFE BRANDING CHANGES
+      # ---------------------------
+      - name: Update package & app name
         run: |
-          sed -i 's/applicationId = "moe.koiverse.archivetune"/applicationId = "moe.koiverse.archivetune.nightly"/' app/build.gradle.kts
-          sed -i 's/ArchiveTune Debug/ArchiveTune Nightly Debug/' app/src/debug/res/values/app_name.xml
-          sed -i 's/ArchiveTune/ArchiveTune/' app/src/main/res/values/app_name.xml
+          sed -i \
+            's/applicationId = "moe.koiverse.archivetune"/applicationId = "moe.koiverse.archivetune.nightly"/' \
+            app/build.gradle.kts
 
+          sed -i \
+            's/ArchiveTune Debug/ArchiveTune Nightly Debug/' \
+            app/src/debug/res/values/app_name.xml
+
+      # ---------------------------
+      # SAFE DEFAULT CHANNEL CHANGE
+      # ---------------------------
       - name: Set default update channel to nightly
-        run: sed -i 's/defaultValue = UpdateChannel.STABLE/defaultValue = UpdateChannel.NIGHTLY/' app/src/main/kotlin/moe/koiverse/archivetune/ui/screens/settings/UpdateScreen.kt
-
-      - name: Update about screen to show ABI_NIGHTLY label
         run: |
-          sed -i 's/text = BuildConfig.ARCHITECTURE.uppercase(),/text = "${BuildConfig.ARCHITECTURE.uppercase()}_NIGHTLY",/' app/src/main/kotlin/moe/koiverse/archivetune/ui/screens/settings/AboutScreen.kt
+          sed -i \
+            's/defaultValue = UpdateChannel.STABLE/defaultValue = UpdateChannel.NIGHTLY/' \
+            app/src/main/kotlin/moe/koiverse/archivetune/ui/screens/settings/UpdateScreen.kt
 
-      - name: Update update check URLs for fork
+      # ---------------------------
+      # UPDATER URL FIXES
+      # ---------------------------
+      - name: Update updater URLs
         run: |
-          sed -i 's|https://api.github.com/repos/koiverse/ArchiveTune/releases|https://api.github.com/repos/sang765/ArchiveTune-Nightly/releases|g' app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt
-          sed -i 's|https://github.com/koiverse/ArchiveTune/releases|https://github.com/sang765/ArchiveTune-Nightly/releases|g' app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt
-          sed -i 's/ArchiveTune.apk/ArchiveTune-Nightly.apk/' app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt
-          sed -i 's/app-${architecture}-release.apk/app-${architecture}-nightly.apk/' app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt
-          sed -i 's|https://api.github.com/repos/koiverse/ArchiveTune/releases?per_page=$perPage|https://api.github.com/repos/sang765/ArchiveTune-Nightly/releases?per_page=$perPage|g' app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt
+          sed -i \
+            's|https://api.github.com/repos/koiverse/ArchiveTune|https://api.github.com/repos/sang765/ArchiveTune-Nightly|g' \
+            app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt
 
-      - name: Build Release APK
-        run: |
-          max_attempts=3
-          attempt=1
-          while [ $attempt -le $max_attempts ]; do
-            echo "================================="
-            echo "Attempt $attempt of $max_attempts"
-            echo "================================="
-            if ./gradlew assemble${{ matrix.abi }}Release; then
-              echo "==============="
-              echo "Build succeeded"
-              echo "==============="
-              exit 0
-            else
-              echo "================================="
-              echo "Build failed with exit code $?"
-              echo "================================="
-              if [ $attempt -eq $max_attempts ]; then
-                echo "================================="
-                echo "All $max_attempts attempts failed"
-                echo "================================="
-                exit 1
-              fi
-              echo "========================"
-              echo "Retrying in 5 seconds..."
-              sleep 5
-              echo "========================"
-              attempt=$((attempt + 1))
-            fi
-          done
+          sed -i \
+            's|https://github.com/koiverse/ArchiveTune|https://github.com/sang765/ArchiveTune-Nightly|g' \
+            app/src/main/kotlin/moe/koiverse/archivetune/utils/Updater.kt
+
+      # ---------------------------
+      # BUILD
+      # ---------------------------
+      - name: Build APK
+        run: ./gradlew assemble${{ matrix.abi }}Release
         env:
-          PULL_REQUEST: 'false'
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
 
+      # ---------------------------
+      # SIGN
+      # ---------------------------
       - name: Sign APK
-        id: sign_app
         uses: ilharp/sign-android-release@v2
         with:
           releaseDir: app/build/outputs/apk/${{ matrix.abi }}/release
@@ -150,66 +148,48 @@ jobs:
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Move signed APK
-        run: |
-          mkdir -p app/build/outputs/apk/${{ matrix.abi }}/release/out
-          # Get signed files from action output
-          IFS=':' read -ra SIGNED_FILES <<< "${{ steps.sign_app.outputs.signedFiles }}"
-          for signed_file in "${SIGNED_FILES[@]}"; do
-            if [ -f "$signed_file" ]; then
-              if [ "${{ matrix.abi }}" = "universal" ]; then
-                cp "$signed_file" app/build/outputs/apk/${{ matrix.abi }}/release/out/ArchiveTune-Nightly.apk
-              else
-                cp "$signed_file" app/build/outputs/apk/${{ matrix.abi }}/release/out/app-${{ matrix.abi }}-nightly.apk
-              fi
-            fi
-          done
-
-      - name: Upload Signed APK
-        uses: actions/upload-artifact@v6
+      # ---------------------------
+      # UPLOAD
+      # ---------------------------
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.abi == 'universal' && 'ArchiveTune-Nightly' || format('app-{0}-nightly', matrix.abi) }}
-          path: app/build/outputs/apk/${{ matrix.abi }}/release/out/*
+          name: app-${{ matrix.abi }}-nightly
+          path: app/build/outputs/apk/${{ matrix.abi }}/release/*.apk
 
+
+# ===============================
+# 3️⃣ RELEASE
+# ===============================
   create-release:
-    needs: [build]
+    needs: [prepare, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           repository: imPratyoosh/ArchiveTune-Nightly
           ref: main
 
-      - name: Download all APKs
-        uses: actions/download-artifact@v7
+      - name: Download APKs
+        uses: actions/download-artifact@v4
         with:
-          path: downloaded_artifacts/
+          path: artifacts
 
       - name: Create nightly release
-        uses: softprops/action-gh-release@v2.5.0
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.build.outputs.new_version }}
-          name: ${{ needs.build.outputs.new_version }}
+          tag_name: ${{ needs.prepare.outputs.new_version }}
+          name: ${{ needs.prepare.outputs.new_version }}
           body: |
-            Release **ArchiveTune Nightly** artifact, generated on **${{ needs.build.outputs.date }} - ${{ needs.build.outputs.time }} (UTC +0)**
+            **ArchiveTune Nightly**
 
-            ***Changelogs → https://github.com/koiverse/ArchiveTune/commits/dev/***
-          files: |
-            downloaded_artifacts/**/*.apk
+            Generated on **${{ needs.prepare.outputs.date }} – ${{ needs.prepare.outputs.time }} (UTC)**
+
+            Changelog:
+            https://github.com/koiverse/ArchiveTune/commits/dev
+          files: artifacts/**/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-
-      - name: Trigger update release notes
-        run: |
-          curl -X POST \
-            -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/dispatches \
-            -d '{"event_type": "update-release-notes", "client_payload": {"new_version": "${{ needs.build.outputs.new_version }}", "changelog_engine": "kotlin"}}'
-
-      - name: Notify on failure
-        if: failure()
-        run: |
-          echo "Build failed on $(date)"
