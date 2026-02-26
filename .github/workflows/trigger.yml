@@ -2,7 +2,7 @@ name: Trigger Workflows
 
 on:
   schedule:
-    - cron: "30 19 * * *" # 1:00 AM IST
+    - cron: "30 19 * * *" # 12:30 AM UTC
   workflow_dispatch: # Using https://console.cron-job.org for schedule
 
 jobs:
