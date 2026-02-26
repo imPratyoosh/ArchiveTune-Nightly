@@ -7,7 +7,7 @@
 </p>
 
 **CI build for Nightly version of [ArchiveTune](https://github.com/koiverse/ArchiveTune). Redefining the YouTube Music Experience on Android.**  
-🕛 Runs at <b><code>1:00 AM</code></b> every day, **IST 0** time zone 🕛
+🕛 Runs at <b><code>1:00 AM</code></b> every day, **IST** time zone 🕛
 
 <sub>Don't forget to leave a ⭐ for this repository if you visit. Thank you so much ♥️</sub>
 
