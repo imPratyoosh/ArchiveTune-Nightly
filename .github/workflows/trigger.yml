@@ -2,7 +2,7 @@ name: Trigger Workflows
 
 on:
   schedule:
-    - cron: "30 12 * * *" # 12:30 UTC (10 min after nightly)
+    - cron: "30 0 * * *" # 12:30 AM UTC
   workflow_dispatch:
 
 jobs:
