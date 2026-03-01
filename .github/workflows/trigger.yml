@@ -1,9 +1,9 @@
 name: Trigger Workflows
 
 on:
-  schedule:
-    - cron: "30 0 * * *" # 12:30 AM UTC
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at 00:00 UTC
 
 jobs:
   trigger:
@@ -11,12 +11,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Trigger APK build
+      - name: Check for update
         uses: actions/github-script@v8
         with:
           script: |
             github.rest.repos.createDispatchEvent({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              event_type: 'check-for-update'
+              event_type: 'check-for-update',
+              client_payload: {}
             })
